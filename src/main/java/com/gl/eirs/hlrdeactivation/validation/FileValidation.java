@@ -11,8 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
 import java.io.*;
+import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -151,13 +156,14 @@ public class FileValidation {
 
                 boolean flagImsiPrefix = false;
                 boolean flagImsiNull = false;
-                for(int i=0;i<imsiPrefix.length;i++) {
-
-                    if(!imsi.startsWith(imsiPrefix[i])) {
-                        flagImsiPrefix = true;
-                    }
-                    if(imsi.isBlank() || !imsi.matches("\\d+")) {
+                for (int i = 0; i < imsiPrefix.length; i++) {
+                    if (imsi.isEmpty()) {
                         flagImsiNull = true;
+                        break;
+                    }
+                    if (!imsi.startsWith(imsiPrefix[i])) {
+                        flagImsiPrefix = true;
+                        break;
                     }
                 }
                 if(flagImsiPrefix) {
@@ -171,7 +177,7 @@ public class FileValidation {
                     alertService.raiseAnAlert("alert5104", file.getFileName(), appConfig.getOperatorName(), 0);
                     return false;
                 }
-                if(flagImsiNull) {
+/*                if(flagImsiNull) {
                     logger.error("Returned for imsi");
 //                    modulesAuditTrail = ModulesAuditTrailBuilder.forUpdate(modulesAuditId, 501, "FAIL", "Null/Non-Numeric entries detected in IMSI for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), moduleName, featureName, "", file.getFileName(), 0, (int)file.getNumberOfRecords(), startTime);
 //                    modulesAuditTrailRepository.save(modulesAuditTrail);
@@ -179,8 +185,7 @@ public class FileValidation {
                     modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Null/Non-Numeric entries detected in IMSI for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
 
                     alertService.raiseAnAlert("alert5107", file.getFileName(), appConfig.getOperatorName(), 0);
-                    return false;
-                }
+                }*/
                 boolean flagMsisdnPrefix = false;
                 boolean flagMsisdnNull = false;
                 for(int i=0;i<msisdnPrefix.length;i++) {

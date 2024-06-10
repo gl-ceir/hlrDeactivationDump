@@ -4,26 +4,35 @@ import com.gl.eirs.hlrdeactivation.alert.AlertService;
 import com.gl.eirs.hlrdeactivation.builder.ModulesAuditTrailBuilder;
 import com.gl.eirs.hlrdeactivation.builder.ExceptionListHisBuilder;
 import com.gl.eirs.hlrdeactivation.config.AppConfig;
+import com.gl.eirs.hlrdeactivation.config.AppDbConfig;
 import com.gl.eirs.hlrdeactivation.dto.FileDto;
 import com.gl.eirs.hlrdeactivation.entity.app.*;
+
 import com.gl.eirs.hlrdeactivation.messages.FailureMsg;
 import com.gl.eirs.hlrdeactivation.repository.app.*;
 import com.gl.eirs.hlrdeactivation.repository.aud.ModulesAuditTrailRepository;
 import com.gl.eirs.hlrdeactivation.service.interfce.IFileService;
+
+/*import com.imsi_retriever.IMSI_RETRIEVER;*/
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.*;
+
 
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/*import static com.imsi_retriever.IMSI_RETRIEVER.getImsi;*/
 
 
 @Service
@@ -56,6 +65,12 @@ public class FileService implements IFileService {
     ModulesAuditTrailRepository modulesAuditTrailRepository;
     @Autowired
     ModulesAuditTrailBuilder modulesAuditTrailBuilder;
+    @Autowired
+    private ImeiListRepository imeiListRepository;
+    @Autowired
+    AppDbConfig appDbConfig;
+    @Autowired
+    private DuplicateDeviceDetailRepository duplicateDeviceDetailRepository;
 
 
     public void checkFileUploaded(FileDto fileDto) throws Exception{
@@ -115,12 +130,22 @@ public class FileService implements IFileService {
         return 0L;
     }
 
-    public FailureMsg readFile(FileDto file, int modulesAuditId, long startTime) {
+    public FailureMsg readFile(FileDto file, int modulesAuditId, long startTime) throws SQLException {
+        Connection conn = appDbConfig.springDataSource().getConnection();
         FailureMsg failureMsg;
         int greyListSuccessCount = 0;
         int blackListSuccessCount = 0;
         int exceptionListSuccessCount = 0;
-        try(BufferedReader reader = new BufferedReader(new FileReader(file.getFileName()))) {
+        int imeiListSuccessCount = 0;
+        int duplicateDeviceDetailSuccessCount=0;
+        String inputFileName = file.getFileName();
+        Path inputPath = Paths.get(inputFileName);
+        String baseFileName = inputPath.getFileName().toString().replaceFirst("[.][^.]+$", "");
+        String processedFileName = baseFileName + "_processed.txt";
+        String filePath = appConfig.getProcessedFile();
+        filePath = filePath + "/" + processedFileName;
+        try( BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
+                BufferedReader reader = new BufferedReader(new FileReader(file.getFileName()))) {
             String record;
             while((record = reader.readLine()) != null) {
                 if (record.isEmpty()) {
@@ -131,6 +156,29 @@ public class FileService implements IFileService {
                     String imsi = splitRecord[file.getImsiColumnNumber()].trim();
                     String msisdn = splitRecord[file.getMsisdnColumnNumber()].trim();
                     String timestamp = splitRecord[file.getDeactivationDateColumnNumber()].trim();
+                    if (imsi == null || imsi.isEmpty()) {
+                        // If IMSI is null or empty, try to retrieve IMSI using the msisdn
+                        imsi = com.imsi_retriever.IMSI_RETRIEVER.getImsi(msisdn, conn);
+                        // If IMSI still couldn't be retrieved, mark the record as not ok and skip it
+                        if (imsi == null || imsi.isEmpty()) {
+                            // Write the original record along with an extra "status" column indicating "not ok"
+                            writer.write(record + "," + "not ok\n");
+                            continue; // Skip further processing for this record
+                        } else {
+                            // Update the splitRecord with the retrieved IMSI
+                            splitRecord[file.getImsiColumnNumber()] = imsi;
+                            // Log the successful retrieval of IMSI
+                            System.out.println("Retrieved IMSI: " + imsi + " for MSISDN: " + msisdn);
+                        }
+                    } else {
+                        // Log the presence of IMSI in the record
+                        System.out.println("Found IMSI in record: " + imsi);
+                    }
+
+                    // Reconstruct the record with the updated IMSI
+                    record = String.join(appConfig.getFileSeparator(), splitRecord);
+                    // If IMSI is found or filled, mark the record as ok
+                    writer.write(record + "," + "ok\n");
 
                     // check in grey list. Store the id of all the matched imsi and then delete and make entry in his tabe
                     List<GreyList> greyList = greyListRepository.findAllByImsi(imsi);
@@ -194,6 +242,54 @@ public class FileService implements IFileService {
                         }
                         file.setExceptionListSuccess(exceptionListSuccessCount);
                     }
+
+
+
+                    List<ImeiList> imeiList = imeiListRepository.findAllByImsi(imsi);
+                    file.setImeiListFound(file.getImeiListFound() + imeiList.size());
+                    if(!imeiList.isEmpty()) {
+
+                        for (ImeiList list: imeiList) {
+                            logger.info("The IMSI matched in Imei list : {}", list.toString());
+                            String imei = list.getImei();
+                            boolean output4 = dbTransactionsService.dbTransaction(list);
+                            if (!output4) {
+                                // stop the file from furthue processing.......
+                                // update modules_audit_trail and alert
+                                logger.error("The entry {} failed for imei list.", list);
+                                file.setImeiListFailure(imeiList.size() - imeiListSuccessCount);
+                                file.setImeiListSuccess(imeiListSuccessCount);
+                                failureMsg = FailureMsg.FailureMsgBuilder("");
+                                return failureMsg;
+                            }
+                            imeiListSuccessCount++;
+
+                        }
+                    }
+                    file.setImeiListSuccess(imeiListSuccessCount);
+
+                    List<DuplicateDeviceDetail> duplicateDeviceDetail = duplicateDeviceDetailRepository.findAllByImsi(imsi);
+                    file.setDuplicateDeviceDetailFound(file.getDuplicateDeviceDetailFound() + duplicateDeviceDetail.size());
+                    if(!duplicateDeviceDetail.isEmpty()) {
+
+                        for (DuplicateDeviceDetail list : duplicateDeviceDetail) {
+                            logger.info("The IMSI matched in duplicate device detail list : {}", list.toString());
+                            boolean output5 = dbTransactionsService.dbTransaction(list);
+                            if (!output5) {
+                                // stop the file from further processing.......
+                                // update modules_audit_trail and alert
+                                logger.error("The entry {} failed for duplicate device detail list.", list);
+                                file.setDuplicateDeviceDetailFailure(duplicateDeviceDetail.size() - duplicateDeviceDetailSuccessCount);
+                                file.setDuplicateDeviceDetailSuccess(duplicateDeviceDetailSuccessCount);
+                                failureMsg = FailureMsg.FailureMsgBuilder("");
+                                return failureMsg;
+
+                            }
+                            duplicateDeviceDetailSuccessCount++;
+                        }
+                        file.setDuplicateDeviceDetailSuccess(duplicateDeviceDetailSuccessCount);
+                    }
+
 
                 } catch (Exception e) {
                     logger.error(e.toString());

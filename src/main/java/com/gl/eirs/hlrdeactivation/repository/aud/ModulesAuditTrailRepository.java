@@ -21,4 +21,5 @@ public interface ModulesAuditTrailRepository extends JpaRepository<ModulesAuditT
                             @Param("count") int count, @Param("failureCount") int failureCount,
                             @Param("executionTime") long executionTime, @Param("modifiedOn") LocalDateTime modifiedOn,
                             @Param("id") int id);
+    
 }

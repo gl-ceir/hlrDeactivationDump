@@ -5,8 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 import java.io.File;
 import java.time.LocalDateTime;
+
 
 @Data
 @Builder
@@ -36,6 +39,15 @@ public class FileDto {
     long exceptionListNotFound;
     long exceptionListSuccess;
     long exceptionListFailure;
+    long imeiListFound;
+    long imeiListNotFound;
+    long imeiListSuccess;
+    long imeiListFailure;
+    long duplicateDeviceDetailFound;
+    long duplicateDeviceDetailNotFound;
+    long duplicateDeviceDetailSuccess;
+    long duplicateDeviceDetailFailure;
+    private List<String> status;
 
     public static FileDto FileDtoBuilder(File file, String folderPath, long recordCount) {
         FileDto fileDto = new FileDto();
@@ -57,6 +69,12 @@ public class FileDto {
         fileDto.setExceptionListFound(0);
         fileDto.setExceptionListNotFound(0);
         fileDto.setExceptionListSuccess(0);
+
+        fileDto.setImeiListFound(0);
+        fileDto.setImeiListNotFound(0);
+        fileDto.setImeiListSuccess(0);
+        List<String> status;
+
         return fileDto;
     }
 

@@ -4,6 +4,7 @@ import com.gl.eirs.hlrdeactivation.dto.FileDto;
 import com.gl.eirs.hlrdeactivation.messages.FailureMsg;
 
 import java.io.File;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 public interface IFileService {
@@ -14,7 +15,7 @@ public interface IFileService {
 
     long getFileRecordCount(File file);
 
-    FailureMsg readFile(FileDto file, int moduleAuditId, long startTime);
+    FailureMsg readFile(FileDto file, int moduleAuditId, long startTime) throws SQLException;
 
 
 }

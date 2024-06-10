@@ -21,6 +21,9 @@ public class AppConfig {
     @Value("${file.path}")
     String filePath;
 
+    @Value("${processed.file}")
+    String processedFile;
+
     @Value("${imsi.header.value}")
     String imsiHeaderValue;
 
@@ -30,7 +33,7 @@ public class AppConfig {
     @Value("${deactivationDate.header.value}")
     String deactivationDateHeaderValue;
 
-    @Value("${alert.url}")
+    @Value("http://139.59.5.244:9509/eirs/alert")
     String alertUrl;
 
     @Value("${move.file.path}")

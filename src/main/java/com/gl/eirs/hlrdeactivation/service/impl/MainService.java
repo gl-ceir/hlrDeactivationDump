@@ -14,11 +14,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.logging.Level;
+
+import java.util.logging.Level;
 
 import static com.gl.eirs.hlrdeactivation.constants.Constants.featureName;
 import static com.gl.eirs.hlrdeactivation.constants.Constants.moduleName;
+import static java.sql.DriverManager.getConnection;
 
 @Service
 public class MainService {
@@ -48,14 +55,18 @@ public class MainService {
 
 
     public void hlrDeactivationProcess()  {
+
+
+
         logger.info("Starting the process of HLR Deactivation process");
         String imsiPrefixValue = sysParamRepository.getValueFromTag("imsiPrefix");
         String msisdnPrefixValue = sysParamRepository.getValueFromTag("msisdnPrefix");
-        if(imsiPrefixValue.isBlank() || imsiPrefixValue.isEmpty() || msisdnPrefixValue.isEmpty() || msisdnPrefixValue.isBlank()) {
-            // alert and exit the process
+        if (imsiPrefixValue == null || imsiPrefixValue.isBlank() || imsiPrefixValue.isEmpty() ||
+                msisdnPrefixValue == null || msisdnPrefixValue.isBlank() || msisdnPrefixValue.isEmpty()) {
+            // Alert and exit the process
             logger.error("The configuration value of imsiPrefix or msisdnPrefix is missing in DB.");
             alertService.raiseAnAlert("alert5001", "", "", 0);
-            return ;
+            return;
         }
 
         logger.info("Getting list of files present in the directory {}", appConfig.getFilePath());
@@ -166,4 +177,6 @@ public class MainService {
             logger.error(e.getMessage());
         }
     }
+
+
 }

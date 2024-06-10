@@ -32,6 +32,8 @@ public class BlackList {
     @Column(name="mode_type")
     String modeType;
 
+    @Column(name="source")
+    String source;
 
     @Column(name="request_type")
     String requestType;
