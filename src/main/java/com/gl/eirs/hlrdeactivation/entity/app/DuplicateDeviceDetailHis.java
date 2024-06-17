@@ -86,9 +86,6 @@ public class DuplicateDeviceDetailHis {
     @Column(name = "fail_count")
     String failCount;
 
-    @Column(name = "operation")
-    int operation;
-
     @Column(name = "action")
     String action;
 

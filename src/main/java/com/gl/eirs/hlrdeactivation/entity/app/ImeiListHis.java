@@ -61,8 +61,5 @@ public class ImeiListHis {
     @Column(name = "action_remark")
     String actionRemark;
 
-    @Column(name = "operation")
-    int operation;
-
 
 }

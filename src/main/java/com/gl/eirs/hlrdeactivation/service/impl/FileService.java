@@ -143,45 +143,52 @@ public class FileService implements IFileService {
         String baseFileName = inputPath.getFileName().toString().replaceFirst("[.][^.]+$", "");
         String processedFileName = baseFileName + "_processed.txt";
         String filePath = appConfig.getProcessedFile();
+        String fileSeparator = appConfig.getFileSeparator().replace("\\|", "|");
         filePath = filePath + "/" + processedFileName;
         try( BufferedWriter writer = new BufferedWriter(new FileWriter(filePath));
                 BufferedReader reader = new BufferedReader(new FileReader(file.getFileName()))) {
-            String record;
+            String record = reader.readLine();
+            writer.write(record + fileSeparator + "Status\n");
             while((record = reader.readLine()) != null) {
                 if (record.isEmpty()) {
                     continue;
                 }
                 try {
                     String[] splitRecord = record.split(appConfig.getFileSeparator(), -1);
+                    logger.info("The record is {}", record);
                     String imsi = splitRecord[file.getImsiColumnNumber()].trim();
                     String msisdn = splitRecord[file.getMsisdnColumnNumber()].trim();
                     String timestamp = splitRecord[file.getDeactivationDateColumnNumber()].trim();
                     if (imsi == null || imsi.isEmpty()) {
                         // If IMSI is null or empty, try to retrieve IMSI using the msisdn
+                        logger.info("The imsi is not present in the entry. Getting imsi from active_msisdn_list or " +
+                                "active_msisdn_list_his table.");
                         imsi = com.imsi_retriever.IMSI_RETRIEVER.getImsi(msisdn, conn);
                         // If IMSI still couldn't be retrieved, mark the record as not ok and skip it
                         if (imsi == null || imsi.isEmpty()) {
                             // Write the original record along with an extra "status" column indicating "not ok"
-                            writer.write(record + "," + "not ok\n");
+                            logger.error("The imsi is not found for the msisdn {} in the active_msisdn_list or " +
+                                    "active_msisdn_list table", msisdn);
+                            writer.write(record + fileSeparator + "not ok\n");
                             continue; // Skip further processing for this record
                         } else {
                             // Update the splitRecord with the retrieved IMSI
                             splitRecord[file.getImsiColumnNumber()] = imsi;
                             // Log the successful retrieval of IMSI
-                            System.out.println("Retrieved IMSI: " + imsi + " for MSISDN: " + msisdn);
+                            logger.info("Retrieved IMSI: " + imsi + " for MSISDN: " + msisdn);
                         }
-                    } else {
-                        // Log the presence of IMSI in the record
-                        System.out.println("Found IMSI in record: " + imsi);
                     }
 
                     // Reconstruct the record with the updated IMSI
-                    record = String.join(appConfig.getFileSeparator(), splitRecord);
+//                    record = String.join(appConfig.getFileSeparator(), splitRecord);
                     // If IMSI is found or filled, mark the record as ok
-                    writer.write(record + "," + "ok\n");
+                    writer.write(record + fileSeparator + "ok\n");
 
                     // check in grey list. Store the id of all the matched imsi and then delete and make entry in his tabe
                     List<GreyList> greyList = greyListRepository.findAllByImsi(imsi);
+                    if(greyList.size() == 0) {
+                        logger.info("No entries found in grey list with imsi: {}", imsi);
+                    }
                     file.setGreyListFound(file.getGreyListFound() + greyList.size());
                     if(!greyList.isEmpty()) {
 
@@ -202,6 +209,9 @@ public class FileService implements IFileService {
                     file.setGreyListSuccess(greyListSuccessCount);
                     List<BlackList> blackList = blackListRepository.findAllByImsi(imsi);
                     file.setBlacklistFound(file.getBlacklistFound() + blackList.size());
+                    if(blackList.size() == 0) {
+                        logger.info("No entries found in black list with imsi: {}", imsi);
+                    }
                     if(!blackList.isEmpty()) {
 
                         for (BlackList list: blackList) {
@@ -223,6 +233,9 @@ public class FileService implements IFileService {
                     file.setBlackListSuccess(blackListSuccessCount);
                     List<ExceptionList> exceptionList = exceptionListRepository.findAllByImsi(imsi);
                     file.setExceptionListFound(file.getExceptionListFound() + exceptionList.size());
+                    if(exceptionList.size() == 0) {
+                        logger.info("No entries found in exception list with imsi: {}", imsi);
+                    }
                     if(!exceptionList.isEmpty()) {
 
                         for (ExceptionList list : exceptionList) {
@@ -247,6 +260,9 @@ public class FileService implements IFileService {
 
                     List<ImeiList> imeiList = imeiListRepository.findAllByImsi(imsi);
                     file.setImeiListFound(file.getImeiListFound() + imeiList.size());
+                    if(imeiList.size() == 0) {
+                        logger.info("No entries found in imei_pair_detail list with imsi: {}", imsi);
+                    }
                     if(!imeiList.isEmpty()) {
 
                         for (ImeiList list: imeiList) {
@@ -270,6 +286,9 @@ public class FileService implements IFileService {
 
                     List<DuplicateDeviceDetail> duplicateDeviceDetail = duplicateDeviceDetailRepository.findAllByImsi(imsi);
                     file.setDuplicateDeviceDetailFound(file.getDuplicateDeviceDetailFound() + duplicateDeviceDetail.size());
+                    if(duplicateDeviceDetail.size() == 0) {
+                        logger.info("No entries found in duplicate_device_detail list with imsi: {}", imsi);
+                    }
                     if(!duplicateDeviceDetail.isEmpty()) {
 
                         for (DuplicateDeviceDetail list : duplicateDeviceDetail) {

@@ -59,8 +59,8 @@ public class MainService {
 
 
         logger.info("Starting the process of HLR Deactivation process");
-        String imsiPrefixValue = sysParamRepository.getValueFromTag("imsiPrefix");
-        String msisdnPrefixValue = sysParamRepository.getValueFromTag("msisdnPrefix");
+        String imsiPrefixValue = sysParamRepository.getValueFromTag("imsiPrefix"); // comma separated 456,457
+        String msisdnPrefixValue = sysParamRepository.getValueFromTag("msisdnPrefix"); //comma separated 855,856
         if (imsiPrefixValue == null || imsiPrefixValue.isBlank() || imsiPrefixValue.isEmpty() ||
                 msisdnPrefixValue == null || msisdnPrefixValue.isBlank() || msisdnPrefixValue.isEmpty()) {
             // Alert and exit the process
@@ -105,10 +105,14 @@ public class MainService {
                     logger.info("The details of file {} processed. " +
                                     "For grey_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
                                     "For black_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
-                                    "For exception_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]",
+                                    "For exception_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
+                                    "For duplicate_device_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]," +
+                                    "For imei_pair_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]",
                             fileDto.getName(), fileDto.getGreyListFound(), fileDto.getGreyListSuccess(), fileDto.getGreyListFailure(),
                             fileDto.getBlacklistFound(), fileDto.getBlackListSuccess(), fileDto.getBlackListFailure(),
-                            fileDto.getExceptionListFound(), fileDto.getExceptionListSuccess(), fileDto.getExceptionListFailure());
+                            fileDto.getExceptionListFound(), fileDto.getExceptionListSuccess(), fileDto.getExceptionListFailure(),
+                            fileDto.getDuplicateDeviceDetailFound(), fileDto.getDuplicateDeviceDetailSuccess(), fileDto.getDuplicateDeviceDetailFailure(),
+                            fileDto.getImeiListFound(), fileDto.getImeiListSuccess(), fileDto.getImeiListFailure());
                     fileService.moveFile(fileDto, appConfig.getMoveFilePath());
                     continue;
                 }
@@ -121,10 +125,14 @@ public class MainService {
                     logger.info("The details of file {} processed. " +
                                     "For grey_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
                                     "For black_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
-                                    "For exception_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]",
+                                    "For exception_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
+                                    "For duplicate_device_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]," +
+                                    "For imei_pair_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]",
                             fileDto.getName(), fileDto.getGreyListFound(), fileDto.getGreyListSuccess(), fileDto.getGreyListFailure(),
                             fileDto.getBlacklistFound(), fileDto.getBlackListSuccess(), fileDto.getBlackListFailure(),
-                            fileDto.getExceptionListFound(), fileDto.getExceptionListSuccess(), fileDto.getExceptionListFailure());
+                            fileDto.getExceptionListFound(), fileDto.getExceptionListSuccess(), fileDto.getExceptionListFailure(),
+                            fileDto.getDuplicateDeviceDetailFound(), fileDto.getDuplicateDeviceDetailSuccess(), fileDto.getDuplicateDeviceDetailFailure(),
+                            fileDto.getImeiListFound(), fileDto.getImeiListSuccess(), fileDto.getImeiListFailure());
                     fileService.moveFile(fileDto, appConfig.getMoveFilePath());
                     continue;
                 }
@@ -136,10 +144,51 @@ public class MainService {
                     logger.info("The details of file {} processed. " +
                                     "For grey_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
                                     "For black_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
-                                    "For exception_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]",
+                                    "For exception_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
+                                    "For duplicate_device_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]," +
+                                    "For imei_pair_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]",
                             fileDto.getName(), fileDto.getGreyListFound(), fileDto.getGreyListSuccess(), fileDto.getGreyListFailure(),
                             fileDto.getBlacklistFound(), fileDto.getBlackListSuccess(), fileDto.getBlackListFailure(),
-                            fileDto.getExceptionListFound(), fileDto.getExceptionListSuccess(), fileDto.getExceptionListFailure());
+                            fileDto.getExceptionListFound(), fileDto.getExceptionListSuccess(), fileDto.getExceptionListFailure(),
+                            fileDto.getDuplicateDeviceDetailFound(), fileDto.getDuplicateDeviceDetailSuccess(), fileDto.getDuplicateDeviceDetailFailure(),
+                            fileDto.getImeiListFound(), fileDto.getImeiListSuccess(), fileDto.getImeiListFailure());
+                    fileService.moveFile(fileDto, appConfig.getMoveFilePath());
+                    continue;
+                }
+
+                boolean validateMsisdnUnique = fileValidation.checkMsisdnUnique(fileDto, moduleAuditId, startTime);
+                if (!validateMsisdnUnique) {
+                    logger.error("The file {} failed validation for unique MSISDN check", fileDto.getFileName());
+                    logger.info("Skipping this file from further processing");
+                    logger.info("The details of file {} processed. " +
+                                    "For grey_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
+                                    "For black_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
+                                    "For exception_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
+                                    "For duplicate_device_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]," +
+                                    "For imei_pair_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]",
+                            fileDto.getName(), fileDto.getGreyListFound(), fileDto.getGreyListSuccess(), fileDto.getGreyListFailure(),
+                            fileDto.getBlacklistFound(), fileDto.getBlackListSuccess(), fileDto.getBlackListFailure(),
+                            fileDto.getExceptionListFound(), fileDto.getExceptionListSuccess(), fileDto.getExceptionListFailure(),
+                            fileDto.getDuplicateDeviceDetailFound(), fileDto.getDuplicateDeviceDetailSuccess(), fileDto.getDuplicateDeviceDetailFailure(),
+                            fileDto.getImeiListFound(), fileDto.getImeiListSuccess(), fileDto.getImeiListFailure());
+                    fileService.moveFile(fileDto, appConfig.getMoveFilePath());
+                    continue;
+                }
+                boolean validateImsiUnique = fileValidation.checkImsiUnique(fileDto, moduleAuditId, startTime);
+                if (!validateImsiUnique) {
+                    logger.error("The file {} failed validation for unique IMSI check", fileDto.getFileName());
+                    logger.info("Skipping this file from further processing");
+                    logger.info("The details of file {} processed. " +
+                                    "For grey_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
+                                    "For black_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
+                                    "For exception_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
+                                    "For duplicate_device_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]," +
+                                    "For imei_pair_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]",
+                            fileDto.getName(), fileDto.getGreyListFound(), fileDto.getGreyListSuccess(), fileDto.getGreyListFailure(),
+                            fileDto.getBlacklistFound(), fileDto.getBlackListSuccess(), fileDto.getBlackListFailure(),
+                            fileDto.getExceptionListFound(), fileDto.getExceptionListSuccess(), fileDto.getExceptionListFailure(),
+                            fileDto.getDuplicateDeviceDetailFound(), fileDto.getDuplicateDeviceDetailSuccess(), fileDto.getDuplicateDeviceDetailFailure(),
+                            fileDto.getImeiListFound(), fileDto.getImeiListSuccess(), fileDto.getImeiListFailure());
                     fileService.moveFile(fileDto, appConfig.getMoveFilePath());
                     continue;
                 }
@@ -163,15 +212,20 @@ public class MainService {
                     logger.info("The details of file {} processed. " +
                                     "For grey_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
                                     "For black_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
-                                    "For exception_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]",
+                                    "For exception_list: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}], " +
+                                    "For duplicate_device_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]," +
+                                    "For imei_pair_detail: [recordsFound: {}, recordsProcessedSuccessfully: {}, recordsFailed: {}]",
                             fileDto.getName(), fileDto.getGreyListFound(), fileDto.getGreyListSuccess(), fileDto.getGreyListFailure(),
                             fileDto.getBlacklistFound(), fileDto.getBlackListSuccess(), fileDto.getBlackListFailure(),
-                            fileDto.getExceptionListFound(), fileDto.getExceptionListSuccess(), fileDto.getExceptionListFailure());
+                            fileDto.getExceptionListFound(), fileDto.getExceptionListSuccess(), fileDto.getExceptionListFailure(),
+                            fileDto.getDuplicateDeviceDetailFound(), fileDto.getDuplicateDeviceDetailSuccess(), fileDto.getDuplicateDeviceDetailFailure(),
+                            fileDto.getImeiListFound(), fileDto.getImeiListSuccess(), fileDto.getImeiListFailure());
                     continue;
                 }
 
                 modulesAuditTrailRepository.updateModulesAudit(200, "SUCCESS", "NA", (int) fileDto.getNumberOfRecords(), 0, (int) (System.currentTimeMillis() - startTime), LocalDateTime.now(), moduleAuditId);
                 fileService.moveFile(fileDto, appConfig.getMoveFilePath());
+
             }
         } catch (Exception e) {
             logger.error(e.getMessage());

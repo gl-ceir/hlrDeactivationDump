@@ -39,7 +39,6 @@ public class DuplicateDeviceDetailHisBuilder {
         duplicateDeviceDetailHis.setActualImei(duplicateDeviceDetail.getActualImei());
         duplicateDeviceDetailHis.setAction(action);
         duplicateDeviceDetailHis.setActionRemark(remarks);
-        duplicateDeviceDetailHis.setOperation(operation);
         return duplicateDeviceDetailHis;
     }
 }

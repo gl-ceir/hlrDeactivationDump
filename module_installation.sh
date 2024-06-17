@@ -19,7 +19,7 @@ datafolder=/u02/eirsdata/logs/hlrDeactivation
 mkdir -p ${appfolderdir}
 mkdir -p ${datafolder}
 
-echo `tar -xzvf '' >> hlrDeactivation_Module_untar_$(date +%Y%m%d)_log.txt`
+echo `tar -xzvf 'hlrDeactivation_1.0.0.0.tar.gz' >> hlrDeactivation_Module_untar_$(date +%Y%m%d)_log.txt`
 echo `mv hlrDeactivation/* ${appfolderdir}`
 
 echo "++++++++++++Module Installation completed+++++++++++"
@@ -38,7 +38,7 @@ show_menus() {
 echo -e ""
 echo -e ""
 echo -e "         #############################################################"
-echo -e "         ##          EIRS_EIR FCM MODULE INSTALLATION               ##"
+echo -e "         ##          EIRS HLR Deactivation INSTALLATION             ##"
 echo -e "         ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##"
 echo -e "         ##                    M A I N - M E N U                    ##"
 echo -e "         ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##"
@@ -54,7 +54,7 @@ echo -e ""
 
 read_options(){
         local choice
-        read -p "Enter choice [ 1 - 4] " choice
+        read -p "Enter choice [ 1 - 3] " choice
         case $choice in
                 1) one ;;
                 2) two ;;

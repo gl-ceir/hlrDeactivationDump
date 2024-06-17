@@ -24,7 +24,7 @@ public class GreyListHis {
     @Column(name="imei")
     String imei;
 
-    @Column(name="complain_type")
+    @Column(name="complaint_type")
     String complainType;
 
     @Column(name="expiry_date")
@@ -63,4 +63,7 @@ public class GreyListHis {
 
     @Column(name="operation")
     int operation;
+
+    @Column(name="source")
+    String source;
 }

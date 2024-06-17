@@ -23,7 +23,7 @@ public class BlackList {
     @Column(name="imei")
     String imei;
 
-    @Column(name="complain_type")
+    @Column(name="complaint_type")
     String complainType;
 
     @Column(name="expiry_date")

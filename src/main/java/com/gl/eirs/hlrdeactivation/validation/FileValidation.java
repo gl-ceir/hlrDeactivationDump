@@ -22,8 +22,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-
+import java.util.regex.Pattern;
 
 
 @Component
@@ -40,9 +39,9 @@ public class FileValidation {
     @Autowired
     AlertService alertService;
 
-//    @Autowired
-//    ModulesAuditTrail modulesAuditTrail;
     private ModulesAuditTrail modulesAuditTrail = null;
+
+    Pattern onlyNumberPattern = Pattern.compile("^[0-9]*$");
 
     public boolean    validateHeaders(FileDto file, int modulesAuditId, long startTime) {
         BufferedReader reader;
@@ -154,61 +153,34 @@ public class FileValidation {
                 String msisdn = record[file.getMsisdnColumnNumber()].trim();
 
 
-                boolean flagImsiPrefix = false;
-                boolean flagImsiNull = false;
-                for (int i = 0; i < imsiPrefix.length; i++) {
-                    if (imsi.isEmpty()) {
-                        flagImsiNull = true;
-                        break;
-                    }
-                    if (!imsi.startsWith(imsiPrefix[i])) {
-                        flagImsiPrefix = true;
-                        break;
-                    }
-                }
-                if(flagImsiPrefix) {
-                    // alert
-                    logger.error("Returned for imsi");
-//                    modulesAuditTrail = ModulesAuditTrailBuilder.forUpdate(modulesAuditId, 501, "FAIL", "Some entries does not matches the IMSI prefix for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), moduleName, featureName, "", file.getFileName(), 0, (int)file.getNumberOfRecords(), startTime);
-//                    modulesAuditTrailRepository.save(modulesAuditTrail);
-                    modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Some entries does not matches the IMSI prefix for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
+                boolean flagImsiNull = checkNull(imsi);
 
-                    // update the audit entry for this file.
-                    alertService.raiseAnAlert("alert5104", file.getFileName(), appConfig.getOperatorName(), 0);
-                    return false;
-                }
-/*                if(flagImsiNull) {
-                    logger.error("Returned for imsi");
-//                    modulesAuditTrail = ModulesAuditTrailBuilder.forUpdate(modulesAuditId, 501, "FAIL", "Null/Non-Numeric entries detected in IMSI for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), moduleName, featureName, "", file.getFileName(), 0, (int)file.getNumberOfRecords(), startTime);
-//                    modulesAuditTrailRepository.save(modulesAuditTrail);
-                    // update the audit entry for this file.
-                    modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Null/Non-Numeric entries detected in IMSI for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
+                if(!flagImsiNull) {
+                    boolean flagImsiNonNumeric=checkNumeric(imsi);
+                    if(!flagImsiNonNumeric) {
+                        boolean flagImsiPrefix = checkPrefix(imsiPrefix, imsi);
+                        if (flagImsiPrefix) {
+                            // alert
+                            logger.error("imsi is not starting with prefix for the record {}", nextLine);
+                            modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Some entries does not matches the IMSI prefix for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) (System.currentTimeMillis() - startTime), LocalDateTime.now(), modulesAuditId);
 
-                    alertService.raiseAnAlert("alert5107", file.getFileName(), appConfig.getOperatorName(), 0);
-                }*/
-                boolean flagMsisdnPrefix = false;
-                boolean flagMsisdnNull = false;
-                for(int i=0;i<msisdnPrefix.length;i++) {
-
-                    if (!msisdn.startsWith(msisdnPrefix[i])) {
-                        flagMsisdnPrefix = true;
+                            // update the audit entry for this file.
+                            alertService.raiseAnAlert("alert5104", file.getFileName(), appConfig.getOperatorName(), 0);
+                            return false;
+                        }
+                    } else {
+                        logger.error("imsi is non numeric in the record {}", nextLine);
+                        modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Non-Numeric entry detected in imsi for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
+                        // update the audit entry for this file.
+                        alertService.raiseAnAlert("alert5110", file.getFileName() + "for imsi", appConfig.getOperatorName(), 0);
+                        return false;
                     }
                 }
-                if(flagMsisdnPrefix) {
-                    // alert
-//                    modulesAuditTrail = ModulesAuditTrailBuilder.forUpdate(modulesAuditId, 501, "FAIL", "Some entries does not matches the MSISDN prefix for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), moduleName, featureName, "", file.getFileName(), 0, (int)file.getNumberOfRecords(), startTime);
-//                    modulesAuditTrailRepository.save(modulesAuditTrail);
-                    modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Some entries does not matches the MSISDN prefix for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
 
-                    // update the audit entry for this file.
-                    alertService.raiseAnAlert("alert5105", file.getFileName(), appConfig.getOperatorName(), 0);
-                    return false;
-                }
+                boolean flagMsisdnNull = checkNull(msisdn);
+
                 if(flagMsisdnNull) {
-//                    logger.error("Returned for imsi");
-//                    logger.error("Returned for imsi");
-//                    modulesAuditTrail = ModulesAuditTrailBuilder.forUpdate(modulesAuditId, 501, "FAIL", "Null/Non-Numeric entries detected in MSISDN for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), moduleName, featureName, "", file.getFileName(), 0, (int)file.getNumberOfRecords(), startTime);
-//                    modulesAuditTrailRepository.save(modulesAuditTrail);
+                    logger.error("msisdn is not present in the records {}", nextLine);
                     modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Null/Non-Numeric entries detected in MSISDN for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
 
                     // update the audit entry for this file.
@@ -216,12 +188,30 @@ public class FileValidation {
                     return false;
 
                 }
+                boolean flagMsisdnNonNumeric=checkNumeric(msisdn);
+                if(flagMsisdnNonNumeric) {
+                    logger.error("msisdn is non-numeric in the record {}", nextLine);
+                    modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Non-Numeric entries detected in MSISDN for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
+
+                    // update the audit entry for this file.
+                    alertService.raiseAnAlert("alert5110", file.getFileName() + "for msisdn", appConfig.getOperatorName(), 0);
+                    return false;
+                }
+                boolean flagMsisdnPrefix = checkPrefix(msisdnPrefix, msisdn);
+                if(flagMsisdnPrefix) {
+                    // alert
+                    logger.error("msisdn is not starting with prefix for the record {}", nextLine);
+                    modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Some entries does not matches the MSISDN prefix for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
+
+                    // update the audit entry for this file.
+                    alertService.raiseAnAlert("alert5105", file.getFileName(), appConfig.getOperatorName(), 0);
+                    return false;
+                }
             }
         } catch (IOException e) {
             // raise alert for exception
             // update modules audit trail
-//            modulesAuditTrail = ModulesAuditTrailBuilder.forUpdate(modulesAuditId, 501, "FAIL", "The HLR deactivation file "+ file.getFileName() + " failed due to " + e.getLocalizedMessage(), moduleName, featureName, "", file.getFileName(), 0, (int)file.getNumberOfRecords(), startTime);
-//            modulesAuditTrailRepository.save(modulesAuditTrail);
+
             modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "The HLR deactivation file "+ file.getFileName() + " failed due to " + e.getLocalizedMessage(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
 
             // update the audit entry for this file.
@@ -229,6 +219,33 @@ public class FileValidation {
             return false;
         }
         return true;
+    }
+
+    public boolean checkPrefix(String[] prefix, String value) {
+        boolean flagPrefix = false;
+
+        for(int i=0;i<prefix.length;i++) {
+
+            if(!value.startsWith(prefix[i])) {
+                logger.error("The value {} does not starts with prefix {}", value, prefix[i]);
+                flagPrefix = true;
+                break;
+            }
+        }
+        return flagPrefix;
+    }
+
+    public boolean checkNull(String value) {
+        if(value == null || value.isEmpty() || value.isEmpty())
+            return true;
+        else return false;
+
+    }
+    public boolean checkNumeric(String value) {
+        if(!onlyNumberPattern.matcher(value.trim()).matches())
+            return true;
+        else return false;
+
     }
 
 
@@ -239,31 +256,30 @@ public class FileValidation {
 
         try {
 
-            List<ProcessBuilder> processBuilders = Arrays.asList(
-                    new ProcessBuilder("cut", "-d"+appConfig.getFileSeparator(),
-                            "-f"+imsiNumber.trim()+","+msisdnNumber.trim(),
-                            file.getFileName()),
-                    new ProcessBuilder("sort"),
-                    new ProcessBuilder("uniq"),
-                    new ProcessBuilder("wc", "-l")
-            );
+            String command= "cut -d " + appConfig.getFileSeparator() + " -f " + imsiNumber.trim()+","+msisdnNumber.trim() + " " + file.getFileName() + " | sort | uniq | wc -l";
+            logger.info("Command for unique imsi,msisdn pair {}", command);
+            ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c",  command);
+            Process process = processBuilder.start();
+            int exitStatus = process.waitFor();
 
-            List<Process> processes = ProcessBuilder.startPipeline(processBuilders);
-            logger.info("Process array is {}" , processes);
-            Process last = processes.get(processes.size() - 1);
-
+            InputStream errorStream = process.getErrorStream();
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream));
+            String line;
+            while ((line = errorReader.readLine()) != null) {
+                logger.error(line);
+            }
 
             // Read the output of the process
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(last.getInputStream()))) {
-                String line;
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+//                String line;
+
 
                 while ((line = reader.readLine()) != null) {
-
+                    logger.info("Output of command is : {}", line );
                     if( !line.trim().equalsIgnoreCase(String.valueOf(file.getNumberOfRecords()))) {
                         // alert
 //                        logger.error("The validation for unique pair checking failed");
-//                        modulesAuditTrail = ModulesAuditTrailBuilder.forUpdate(modulesAuditId, 501, "FAIL", "The HLR deactivation file " +file.getFileName()+" does not contain unique pair of IMSI and MSISDN for operator " +appConfig.getOperatorName(), moduleName, featureName, "", file.getFileName(), 0, (int)file.getNumberOfRecords(), startTime);
-//                        modulesAuditTrailRepository.save(modulesAuditTrail);
+
                         modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "The HLR deactivation file " +file.getFileName()+" does not contain unique pair of IMSI and MSISDN for operator " +appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
 
                         // update the audit entry for this file.
@@ -273,8 +289,7 @@ public class FileValidation {
                 }
             } catch (IOException e) {
                 // alert
-//                modulesAuditTrail = ModulesAuditTrailBuilder.forUpdate(modulesAuditId, 501, "FAIL", "The HLR deactivation file "+ file.getFileName() + " failed due to " + e.getLocalizedMessage(), moduleName, featureName, "", file.getFileName(), 0, (int)file.getNumberOfRecords(), startTime);
-//                modulesAuditTrailRepository.save(modulesAuditTrail);
+
                 // update the audit entry for this file.
                 modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "The HLR deactivation file "+ file.getFileName() + " failed due to " + e.getLocalizedMessage(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
 
@@ -284,12 +299,134 @@ public class FileValidation {
             }
         } catch (Exception e) {
             // alert
-//            modulesAuditTrail = ModulesAuditTrailBuilder.forUpdate(modulesAuditId, 501, "FAIL", "The HLR deactivation file "+ file.getFileName() + " failed due to " + e.getLocalizedMessage(), moduleName, featureName, "", file.getFileName(), 0, (int)file.getNumberOfRecords(), startTime);
-//            modulesAuditTrailRepository.save(modulesAuditTrail);
+
             modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "The HLR deactivation file "+ file.getFileName() + " failed due to " + e.getLocalizedMessage(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
 
             // update the audit entry for this file.
             alertService.raiseAnAlert("alert5108", file.getFileName(), appConfig.getOperatorName(), 0);
+            return false;
+        }
+        return true;
+    }
+
+
+    public boolean checkMsisdnUnique(FileDto file, int modulesAuditId, long startTime) {
+        String msisdnNumber = String.valueOf(file.getMsisdnColumnNumber() + 1);
+        try {
+
+            String command = "cut -d " + appConfig.getFileSeparator() + " -f " + msisdnNumber.trim() + " " + file.getFileName() + " | sort | uniq | wc -l";
+            logger.info("Command for msisdn uniqueness check {}", command);
+            ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c", command);
+//            processBuilder.redirectOutput(ProcessBuilder.Redirect.to(sortFile));
+            Process process = processBuilder.start();
+            int exitStatus = process.waitFor();
+
+            InputStream errorStream = process.getErrorStream();
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream));
+            String line;
+            while ((line = errorReader.readLine()) != null) {
+                logger.error(line);
+            }
+
+
+            // Read the output of the process
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+//                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    logger.info("Output of command is : {}", line);
+                    if (!line.trim().equalsIgnoreCase(String.valueOf(file.getNumberOfRecords()))) {
+                        modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "The HLR Deactivation file " + file.getFileName() + " does not contain unique values for msisdn for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) (System.currentTimeMillis() - startTime), LocalDateTime.now(), modulesAuditId);
+
+                        alertService.raiseAnAlert("alert5109", file.getFileName(), appConfig.getOperatorName(), 0);
+                        return false;
+                    }
+                }
+            } catch (IOException e) {
+                // alert
+//                modulesAuditTrail = ModulesAuditTrailBuilder.forUpdate(modulesAuditId, 501, "FAIL", "The HLR deactivation file "+ file.getFileName() + " failed due to " + e.getLocalizedMessage(), moduleName, featureName, "", file.getFileName(), 0, (int)file.getNumberOfRecords(), startTime);
+//                modulesAuditTrailRepository.save(modulesAuditTrail);
+                // update the audit entry for this file.
+                modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "The HLR deactivation file " + file.getFileName() + " failed due to " + e.getLocalizedMessage(), 0, (int) file.getNumberOfRecords(), (int) (System.currentTimeMillis() - startTime), LocalDateTime.now(), modulesAuditId);
+
+                alertService.raiseAnAlert("alert5108", file.getFileName(), appConfig.getOperatorName(), 0);
+
+                return false;
+            }
+        } catch (Exception e) {
+            // alert
+//            modulesAuditTrail = ModulesAuditTrailBuilder.forUpdate(modulesAuditId, 501, "FAIL", "The HLR deactivation file "+ file.getFileName() + " failed due to " + e.getLocalizedMessage(), moduleName, featureName, "", file.getFileName(), 0, (int)file.getNumberOfRecords(), startTime);
+//            modulesAuditTrailRepository.save(modulesAuditTrail);
+            modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "The HLR deactivation file " + file.getFileName() + " failed due to " + e.getLocalizedMessage(), 0, (int) file.getNumberOfRecords(), (int) (System.currentTimeMillis() - startTime), LocalDateTime.now(), modulesAuditId);
+
+            // update the audit entry for this file.
+            alertService.raiseAnAlert("alert5108", file.getFileName(), appConfig.getOperatorName(), 0);
+            return false;
+        }
+        return true;
+    }
+
+    public boolean checkImsiUnique(FileDto file, int modulesAuditId, long startTime) {
+        String imsiNumber= String.valueOf(file.getImsiColumnNumber()+1);
+        try {
+
+//            String command= "cut -d " + appConfig.getFileSeparator() + " -f " + msisdnNumber.trim()  + " " + file.getFileName() + " | sort | uniq | wc -l";
+            String command = "cut -d " + appConfig.getFileSeparator() + " -f " + imsiNumber.trim() + " " +  file.getFileName() + " | tail -n +2 | grep -v '^$' | sort | uniq -c | awk '$1 > 1'";
+            logger.info("Command for imsi uniqueness check {}", command);
+            ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c",  command);
+//            processBuilder.(ProcessBuilder.Redirect.to(sortFile));
+            Process process = processBuilder.start();
+            int exitStatus = process.waitFor();
+
+            InputStream errorStream = process.getErrorStream();
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream));
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = errorReader.readLine()) != null) {
+
+                logger.error(line);
+
+            }
+
+//            List<Process> processes = ProcessBuilder.startPipeline(processBuilders);
+//            logger.info("Process array is {}" , processes);
+//            Process last = processes.get(processes.size() - 1);
+
+
+            // Read the output of the process
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+
+                while ((line = reader.readLine()) != null) {
+                    output.append(line).append("\n");
+                }
+                int exitCode = process.waitFor();
+                if(exitCode == 0 ) {
+                    if (output.toString().isEmpty()) {
+                        logger.info("All non-empty values for imsi are unique.");
+                    }
+                    else {
+//                        logger.error(output.toString());
+                        logger.error(Arrays.toString(new String[]{output.toString().split("\n")[0]}));
+                        modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "The Sim Change file " +file.getFileName()+" does not contain unique values for imsi for operator " +appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
+
+                        alertService.raiseAnAlert("alert5111", file.getFileName(), appConfig.getOperatorName(), 0);
+                        return false;
+                    }
+                }
+            } catch (IOException e) {
+
+                modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "The Sim Change file "+ file.getFileName() + " failed due to " + e.getLocalizedMessage(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
+
+                alertService.raiseAnAlert("alert5411", file.getFileName(), appConfig.getOperatorName(), 0);
+
+                return false;
+            }
+        } catch (Exception e) {
+
+            modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "The Sim Change file "+ file.getFileName() + " failed due to " + e.getLocalizedMessage(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
+
+            // update the audit entry for this file.
+            alertService.raiseAnAlert("alert5411", file.getFileName(), appConfig.getOperatorName(), 0);
             return false;
         }
         return true;

@@ -5,6 +5,8 @@ import com.gl.eirs.hlrdeactivation.entity.app.*;
 import com.gl.eirs.hlrdeactivation.repository.app.*;
 import com.gl.eirs.hlrdeactivation.service.interfce.IDbTransactions;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +39,7 @@ public class DbTransactionsService implements IDbTransactions {
     private DuplicateDeviceDetailHisRepository duplicateDeviceDetailHisRepository;
 
 
-
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
     @Override
     @Transactional
     public boolean dbTransaction(GreyList greyList) {
@@ -105,6 +107,7 @@ public class DbTransactionsService implements IDbTransactions {
             ImeiListHis imeiListHis = ImeiListHisBuilder.forInsert(imeiList, 0, "delete");
             imeiListHisRepository.save(imeiListHis);
             BlackList blackListEntry = blackListRepository.findByImeiAndSource(imeiList.getImei(), "auto pairing");
+            logger.info("The black list entry with imei: {} and source auto pairing {}", imeiList.getImei(), blackListEntry);
             if (blackListEntry != null) {
                 blackListRepository.delete(blackListEntry);
                 BlackListHis blackListHisEntry = BlackListHisBuilder.forInsert(blackListEntry, 0);
