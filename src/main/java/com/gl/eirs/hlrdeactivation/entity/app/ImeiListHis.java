@@ -24,7 +24,7 @@ public class ImeiListHis {
     @Column(name="imei")
     String imei;
 
-    @Column(name="filename")
+    @Column(name="file_name")
     String fileName;
 
     @Column(name="expiry_date")
