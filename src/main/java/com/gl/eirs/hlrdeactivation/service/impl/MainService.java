@@ -74,7 +74,7 @@ public class MainService {
         logger.info("The count of files is {}", fileDtos.size());
         if(fileDtos.isEmpty()) {
             logger.error("No files found. Raising an alert");
-            alertService.raiseAnAlert("alert5100", "", "", 0);
+            alertService.raiseAnAlert("alert5100", appConfig.getFilePath(), appConfig.getOperatorName(), 0);
             System.exit(1);
         }
 

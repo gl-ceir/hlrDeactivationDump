@@ -162,7 +162,7 @@ public class FileValidation {
                         if (flagImsiPrefix) {
                             // alert
                             logger.error("imsi is not starting with prefix for the record {}", nextLine);
-                            modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Some entries does not matches the IMSI prefix for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) (System.currentTimeMillis() - startTime), LocalDateTime.now(), modulesAuditId);
+                            modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Some entries does not matches the IMSI prefix for HLR deactivation file " + file.getFileName() + " for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) (System.currentTimeMillis() - startTime), LocalDateTime.now(), modulesAuditId);
 
                             // update the audit entry for this file.
                             alertService.raiseAnAlert("alert5104", file.getFileName(), appConfig.getOperatorName(), 0);
@@ -170,7 +170,7 @@ public class FileValidation {
                         }
                     } else {
                         logger.error("imsi is non numeric in the record {}", nextLine);
-                        modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Non-Numeric entry detected in imsi for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
+                        modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Non-Numeric entry detected in imsi for HLR deactivation file " + file.getFileName() + " for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
                         // update the audit entry for this file.
                         alertService.raiseAnAlert("alert5110", file.getFileName() + "for imsi", appConfig.getOperatorName(), 0);
                         return false;
@@ -181,7 +181,7 @@ public class FileValidation {
 
                 if(flagMsisdnNull) {
                     logger.error("msisdn is not present in the records {}", nextLine);
-                    modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Null/Non-Numeric entries detected in MSISDN for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
+                    modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Null/Non-Numeric entries detected in MSISDN for HLR deactivation file " + file.getFileName() + " for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
 
                     // update the audit entry for this file.
                     alertService.raiseAnAlert("alert5107", file.getFileName(), appConfig.getOperatorName(), 0);
@@ -201,7 +201,7 @@ public class FileValidation {
                 if(flagMsisdnPrefix) {
                     // alert
                     logger.error("msisdn is not starting with prefix for the record {}", nextLine);
-                    modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Some entries does not matches the MSISDN prefix for HLR deactivation file " + file.getFileName() + "for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
+                    modulesAuditTrailRepository.updateModulesAudit(501, "FAIL", "Some entries does not matches the MSISDN prefix for HLR deactivation file " + file.getFileName() + " for operator " + appConfig.getOperatorName(), 0, (int) file.getNumberOfRecords(), (int) ( System.currentTimeMillis()  -  startTime ), LocalDateTime.now(), modulesAuditId);
 
                     // update the audit entry for this file.
                     alertService.raiseAnAlert("alert5105", file.getFileName(), appConfig.getOperatorName(), 0);

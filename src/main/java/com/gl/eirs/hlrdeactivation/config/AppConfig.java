@@ -33,7 +33,7 @@ public class AppConfig {
     @Value("${deactivationDate.header.value}")
     String deactivationDateHeaderValue;
 
-    @Value("http://139.59.5.244:9509/eirs/alert")
+    @Value("${alert.url}")
     String alertUrl;
 
     @Value("${move.file.path}")
